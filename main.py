@@ -75,7 +75,7 @@ def create_entry():
       str(now.time()).replace(':', '-')
 
   encrypted = encrypt_message(entry_msg, pwd, DEFAULT_ITERATIONS)
-  entry_file = open(ENTRIES_PATH+entry_name, 'wb').write(encrypted)
+  open(ENTRIES_PATH+entry_name, 'wb').write(encrypted)
 
 
 def main():
