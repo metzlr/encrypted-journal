@@ -1,12 +1,16 @@
 import os
 import base64
 import secrets
+import datetime
+import sys
+import fnmatch
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 DEFAULT_ITERATIONS = 100000
+ENTRIES_PATH = './entries/'
 
 
 def get_key(pwd: bytes, salt: bytes, iterations: int) -> bytes:
@@ -45,14 +49,38 @@ def decrypt_message(token: bytes, pwd: str) -> str:
   return Fernet(key).decrypt(encrypted_msg).decode('utf-8')
 
 
-def main():
-  password = "thisIsATestPassword"
-  message = "Test Message!!"
+def get_num_entries():
+  return len(fnmatch.filter(os.listdir(ENTRIES_PATH), '*.entry'))
 
-  encrypted = encrypt_message(message, password)
-  print("ENCRYPTED", encrypted)
-  decrypted = decrypt_message(encrypted, password)
-  print("DECRYPTED", decrypted)
+
+def create_entry():
+  pwd = input("Enter your password: ")
+
+  # Create entries directory if it doesn't exist
+  if (not os.path.exists(ENTRIES_PATH)):
+    os.mkdir(ENTRIES_PATH)
+
+  # Get entry message
+  entry_path = input(
+      "Create a .txt file containing the entry. Enter the path to that file: ")
+  try:
+    entry_msg = open(entry_path, "r").read()
+  except:
+    print("ERROR unable to open file at path:", entry_path)
+    return
+
+  entry_number = get_num_entries() + 1
+  now = datetime.datetime.now()
+  entry_name = str(entry_number) + '___' + str(now.date()) + '_' + \
+      str(now.time()).replace(':', '-')
+
+  encrypted = encrypt_message(entry_msg, pwd, DEFAULT_ITERATIONS)
+  entry_file = open(ENTRIES_PATH+entry_name, 'wb').write(encrypted)
+
+
+def main():
+
+  create_entry()
 
 
 if __name__ == "__main__":
