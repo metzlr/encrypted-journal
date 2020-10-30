@@ -5,6 +5,7 @@ import datetime
 import sys
 import fnmatch
 import getpass
+import hashlib
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -12,6 +13,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 DEFAULT_ITERATIONS = 100000
 ENTRIES_PATH = './entries/'
+PASSHASH_PATH = './phash.key'
 
 
 def get_key(pwd: bytes, salt: bytes, iterations: int) -> bytes:
@@ -107,8 +109,37 @@ def list_entries():
   return entries
 
 
+def get_pass_hash(pwd):
+  return hashlib.sha256(pwd.encode('utf-8')).digest()
+
+
+def create_password():
+  while (True):
+    pwd = getpass.getpass(prompt="Enter a new password: ")
+    confirmation = getpass.getpass(prompt="Confirm new password: ")
+    if (confirmation == pwd):
+      break
+
+  open(PASSHASH_PATH, 'wb').write(get_pass_hash())
+
+  return pwd
+
+
+def validate_password(pwd):
+  pwd_hash = open(PASSHASH_PATH, 'rb').read()
+  check_hash = get_pass_hash(pwd)
+  return pwd_hash == check_hash
+
+
 def main():
-  pwd = getpass.getpass(prompt='Enter password: ')
+  if (os.path.exists(PASSHASH_PATH)):
+    # TODO: Increase computation cost of checking password
+    pwd = getpass.getpass(prompt="Enter password: ")
+    if (not validate_password(pwd)):
+      print("Incorrect password")
+      return
+  else:
+    pwd = create_password()
 
   while (True):
     cmd = input("journal: ")
