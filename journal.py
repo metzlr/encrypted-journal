@@ -86,8 +86,13 @@ def read_entry(pwd):
     entry_bytes = open(os.path.join(ENTRIES_PATH, entries[i]), "rb").read()
   except:
     print("ERROR Unable to open entry. Something might be wrong with the file")
+    return
 
-  msg = decrypt_message(entry_bytes, pwd)
+  try:
+    msg = decrypt_message(entry_bytes, pwd)
+  except:
+    print("ERROR Failed to decrypt entry file. Make sure you entered the correct password")
+    return
   print("\nMESSAGE:\n")
   print(msg+"\n")
 
