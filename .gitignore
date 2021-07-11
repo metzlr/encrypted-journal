@@ -3,3 +3,7 @@
 .python-version
 test.txt
 data/
+dev-data/
+dist
+*.egg-info
+.env
