@@ -1,7 +1,5 @@
 import base64
 import secrets
-import sys
-import getpass
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -17,10 +15,10 @@ def get_key(pwd: bytes, salt: bytes, iterations: int) -> bytes:
   )
   return base64.urlsafe_b64encode(kdf.derive(pwd))
 
-def encrypt_message(msg: str, pwd: str, iterations: int = DEFAULT_ITERATIONS) -> bytes:
-  return encrypt_message(msg.encode('utf-8'), pwd, iterations)
+def encrypt_string(msg: str, pwd: str, iterations: int = DEFAULT_ITERATIONS) -> bytes:
+  return encrypt_bytes(msg.encode('utf-8'), pwd, iterations)
 
-def encrypt_message(msg: bytes, pwd: str, iterations: int = DEFAULT_ITERATIONS) -> bytes:
+def encrypt_bytes(msg: bytes, pwd: str, iterations: int = DEFAULT_ITERATIONS) -> bytes:
   salt = secrets.token_bytes(32)
   key = get_key(pwd.encode('utf-8'), salt, iterations)
   # Creates a base64 encoded token in format of salt + iterations + encrypted message. Storing salt/iterations with message allows messages to be decrypted independently
@@ -34,7 +32,7 @@ def encrypt_message(msg: bytes, pwd: str, iterations: int = DEFAULT_ITERATIONS) 
   )
 
 
-def decrypt_message(token: bytes, pwd: str) -> str:
+def decrypt_bytes(token: bytes, pwd: str) -> str:
   decoded = base64.urlsafe_b64decode(token)
 
   salt = decoded[:32]

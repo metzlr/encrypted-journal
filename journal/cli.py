@@ -35,7 +35,7 @@ def require_password(f):
           click.echo(f"Whoops. The password must be at least {PWD_MIN_LENGTH} {'characters' if PWD_MIN_LENGTH > 1 else 'character'} long.")
         else:
           break
-      encrypted_verify_msg = encryption.encrypt_message(
+      encrypted_verify_msg = encryption.encrypt_bytes(
           VERIFY_PWD_MSG, pwd_input, PWD_ITERATIONS)
       open(pwd_path, 'wb').write(encrypted_verify_msg)
       click.echo(
@@ -51,7 +51,7 @@ def validate_password(test_pwd, pwd_path):
   Checks given pwd string against stored password token
   """
   pwd_token = open(pwd_path, 'rb').read()
-  verify_msg = encryption.decrypt_message(pwd_token, test_pwd)
+  verify_msg = encryption.decrypt_bytes(pwd_token, test_pwd)
   return verify_msg == VERIFY_PWD_MSG
 
 
@@ -68,6 +68,8 @@ def list_entries(path, numbered=False):
     click.echo("No entries found.")
     return
 
+  # An alternative to check if the filename ends in '.entry' might be os.path.splitext(f)[-1].lower()
+  # That version isn't being used since I'm lazy and it would need to be mocked
   entries = [f for f in os.listdir(path) if os.path.isfile(
       os.path.join(path, f)) and os.path.splitext(f)[-1].lower() == '.entry']
   
@@ -140,7 +142,7 @@ def create(ctx, pwd):
   click.echo(f"New encrypted entry successfully created at: {new_entry_path}")
 
   # Encrypt text and save to file
-  encrypted = encryption.encrypt_message(entry_bytes, pwd)
+  encrypted = encryption.encrypt_bytes(entry_bytes, pwd)
   open(new_entry_path, 'wb').write(encrypted)
 
   return True
@@ -164,7 +166,7 @@ def read(ctx, pwd):
     return
 
   try:
-    msg = encryption.decrypt_message(entry_bytes, pwd)
+    msg = encryption.decrypt_bytes(entry_bytes, pwd)
   except:
     click.echo("ERROR Failed to decrypt entry file. Make sure you entered the correct password")
     return

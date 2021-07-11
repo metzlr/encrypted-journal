@@ -7,3 +7,4 @@ dev-data/
 dist
 *.egg-info
 .env
+__pycache__/
