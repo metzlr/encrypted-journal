@@ -97,7 +97,6 @@ def cli(ctx):
   """
   Encrypted Journal CLI
   """
-
   # ensure that ctx.obj exists and is a dict
   ctx.ensure_object(dict)
 
@@ -129,8 +128,6 @@ def create(ctx, pwd):
   Create a new encrypted journal entry
   """
   entries_path = os.path.join(ctx.obj["DATA_PATH"], ENTRIES_PATH)
-
-  print("PASSWORD", pwd)
 
   # Create entries directory if it doesn't exist
   if (not os.path.exists(entries_path)):
@@ -181,5 +178,12 @@ def read(ctx, pwd):
         "ERROR Failed to decrypt entry file. Make sure you entered the correct password")
     return
 
-  click.echo("ENTRY:\n")
-  click.echo(msg+"\n")
+  ms = str(datetime.datetime.now().microsecond)
+  temp_name = entries[i] + ms + '.tmp'
+  read_only_msg = "NOTE: Modifying this file will NOT affect the actual entry. This file will be deleted once you exit the editor.\n---------------------------------------\n\n"
+  editor.edit(filename=temp_name, contents=read_only_msg + msg)
+
+  if os.path.exists(temp_name):
+    os.remove(temp_name)
+  else:
+    click.echo(f"ERROR Unable to find and delete {temp_name}")
