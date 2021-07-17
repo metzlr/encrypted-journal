@@ -2,6 +2,7 @@ import unittest
 import secrets
 import journal.encryption as encryption
 
+
 class TestEncryption(unittest.TestCase):
 
   def setup(self):
@@ -22,6 +23,10 @@ class TestEncryption(unittest.TestCase):
 
   def test_encrypt_and_decrypt(self):
     message = "This is a message"
-    encrypted = encryption.encrypt_string(message, "somepassword")
-    decrypted = encryption.decrypt_bytes(encrypted, "somepassword")
+    encrypted = encryption.encrypt_from_password(message, "somepassword")
+    decrypted = encryption.decrypt_from_password(encrypted, "somepassword")
+    self.assertEqual(message, decrypted)
+    message_bytes = message.encode('utf-8')
+    encrypted = encryption.encrypt_from_password(message_bytes, "somepassword")
+    decrypted = encryption.decrypt_from_password(encrypted, "somepassword")
     self.assertEqual(message, decrypted)
