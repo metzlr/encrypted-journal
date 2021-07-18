@@ -7,6 +7,9 @@ A simple journal CLI that encrypts/decrypts entries using a password.
 2. Run `pip install --user .` from the repository root
 3. Run `ejournal` to verify installation was successful
 
+#### MacOS
+If after installing, the `ejournal` command isn't working, ensure that you have `~/.local/bin` added your `PATH`
+
 ## Development
 ### Setup
 1. Clone repository
