@@ -1,15 +1,14 @@
 import unittest
-import journal.encryption as encryption
 from io import StringIO
 from journal import cli
-from unittest.mock import patch, Mock
+from unittest.mock import patch, MagicMock
 
 
 class FakeContext:
   obj = {}
 
 
-class TestEncryption(unittest.TestCase):
+class TestCli(unittest.TestCase):
 
   ctx = None
 
@@ -22,25 +21,36 @@ class TestEncryption(unittest.TestCase):
   def tearDownClass(cls):
     cls.ctx = None
 
-  @patch("journal.cli.os.listdir")
-  @patch("journal.cli.os.path.isfile")
-  @patch("journal.cli.os.path.isdir")
   @patch("sys.stdout", new_callable=StringIO)
-  def test_list_entries(self, mock_stdout, isdir_mock, isfile_mock, listdir_mock):
-    path = "./entries/"
-    listdir_mock.return_value = ['entry1.entry', 'entry3.txt.entry']
-    isfile_mock.return_value = True
-    isdir_mock.return_value = True
+  def test_list_entries(self, mock_stdout):
+    file_mock1 = MagicMock()
+    file_mock2 = MagicMock()
 
-    list_entries = cli.list_entries(path, False)
-    expected_out = "\nENTRY NAME" + \
-        "\n--------------------------------------------" + \
-        "\nentry1.entry\nentry3.txt.entry\n"
+    file_mock1.__lt__.return_value = True
+    file_mock2.__lt__.return_value = False
 
-    expected_out += "\nID\tENTRY NAME" + \
+    file_mock1.is_file.return_value = True
+    file_mock2.is_file.return_value = True
+
+    file_mock1.name = "entry1.entry"
+    file_mock2.name = "entry2.txt.entry"
+
+    path_mock = MagicMock()
+    path_mock.exists.return_value = True
+    path_mock.glob.return_value = iter([file_mock1, file_mock2])
+
+    list_entries = cli.list_entries(path_mock, False)
+    path_mock.glob.return_value = iter([file_mock2, file_mock1])  # Reset
+    list_entries = cli.list_entries(path_mock, True)
+
+    expected_out = "ENTRY NAME" + \
         "\n--------------------------------------------" + \
-        "\n0\tentry1.entry\n1\tentry3.txt.entry\n"
-    list_entries = cli.list_entries(path, True)
-    self.assertListEqual(list_entries, ['entry1.entry', 'entry3.txt.entry'])
+        "\nentry1.entry\nentry2.txt.entry\n"
+
+    expected_out += "ID\tENTRY NAME" + \
+        "\n--------------------------------------------" + \
+        "\n1\tentry1.entry\n2\tentry2.txt.entry\n"
     actual = mock_stdout.getvalue()
+
+    self.assertListEqual(list_entries, [file_mock1, file_mock2])
     self.assertEqual(mock_stdout.getvalue(), expected_out, msg=actual)

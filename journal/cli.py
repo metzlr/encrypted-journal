@@ -1,27 +1,18 @@
-import os
 import click
-import editor
-import fnmatch
 import datetime
-from click.decorators import pass_context
 from functools import update_wrapper
-from dotenv import load_dotenv
 from journal import encryption
-from journal.config import PWD_ITERATIONS, VERIFY_PWD_FILENAME, VERIFY_PWD_MSG, PROD_DATA_PATH, DEV_DATA_PATH, PWD_ITERATIONS, PWD_MIN_LENGTH, ENTRIES_PATH
-
-load_dotenv()
+from journal.global_config import PWD_ITERATIONS, VERIFY_PASSWORD_MESSAGE, DATA_PATH, PWD_ITERATIONS, PWD_MIN_LENGTH, ENTRIES_PATH, PASSWORD_KEY_PATH
 
 
 def require_password(f):
   @click.pass_context
   def get_pwd(ctx, *args, **kwargs):
-    data_path = ctx.obj["DATA_PATH"]
-    pwd_path = os.path.join(data_path, VERIFY_PWD_FILENAME)
     pwd = None
-    if (os.path.exists(pwd_path)):
+    if PASSWORD_KEY_PATH.exists():
       while True:
         pwd_input = click.prompt("Password", type=str, hide_input=True)
-        if (validate_password(pwd_input, pwd_path)):
+        if validate_password(pwd_input, PASSWORD_KEY_PATH):
           click.echo("Correct!\n")
           pwd = pwd_input
           break
@@ -40,10 +31,10 @@ def require_password(f):
           pwd = pwd_input
           break
       encrypted_verify_msg = encryption.encrypt_from_password(
-          VERIFY_PWD_MSG, pwd, PWD_ITERATIONS)
-      open(pwd_path, 'wb').write(encrypted_verify_msg)
+          VERIFY_PASSWORD_MESSAGE, pwd, PWD_ITERATIONS)
+      PASSWORD_KEY_PATH.write_bytes(encrypted_verify_msg)
       click.echo(
-          f"Password saved. Don't forget it.")
+          f"Password saved. Don't forget it.\n")
 
     return ctx.invoke(f, pwd, *args, **kwargs)
 
@@ -54,118 +45,105 @@ def validate_password(test_pwd, pwd_path):
   """
   Checks given pwd string against stored password token
   """
-  pwd_token = open(pwd_path, 'rb').read()
+  pwd_token = pwd_path.read_bytes()
   verify_msg = encryption.decrypt_from_password(pwd_token, test_pwd)
-  return verify_msg == VERIFY_PWD_MSG
+  return verify_msg == VERIFY_PASSWORD_MESSAGE
 
 
 def get_num_entries(path):
-  return len(fnmatch.filter(os.listdir(path), '*.entry'))
+  return len(list(path.glob("*.entry")))
 
 
 def list_entries(path, numbered=False):
   """
   List all entries in the data directory
   """
-
-  if not os.path.isdir(path):
+  if not path.exists():
     click.echo("No entries found.")
     return
 
-  # An alternative to check if the filename ends in '.entry' might be os.path.splitext(f)[-1].lower()
-  # That version isn't being used since I'm lazy and it would need to be mocked
-  entries = [f for f in os.listdir(path) if os.path.isfile(
-      os.path.join(path, f)) and os.path.splitext(f)[-1].lower() == '.entry']
+  entries = sorted([f for f in path.glob("*.entry") if f.is_file()])
 
   if numbered:
-    click.echo("\nID\tENTRY NAME")
+    click.echo("ID\tENTRY NAME")
     click.echo("--------------------------------------------")
     for i in range(len(entries)):
-      click.echo("{num}\t{file_name}".format(num=i, file_name=entries[i]))
+      click.echo("{num}\t{file_name}".format(
+          num=i+1, file_name=entries[i].name))
   else:
-    click.echo("\nENTRY NAME")
+    click.echo("ENTRY NAME")
     click.echo("--------------------------------------------")
     for i in range(len(entries)):
-      click.echo(f"{entries[i]}")
+      click.echo(f"{entries[i].name}")
 
   return entries
 
 
 @click.group()
-@click.pass_context
-def cli(ctx):
+def cli():
   """
   Encrypted Journal CLI
   """
-  # ensure that ctx.obj exists and is a dict
-  ctx.ensure_object(dict)
-
-  dev = os.getenv("DEV", "False").lower() == 'true'
-  if dev:
-    ctx.obj["DATA_PATH"] = DEV_DATA_PATH
-  else:
-    ctx.obj["DATA_PATH"] = PROD_DATA_PATH
-
   # Create data directory if it doesn't already exist
-  os.makedirs(ctx.obj["DATA_PATH"], exist_ok=True)
+  if not DATA_PATH.exists():
+    DATA_PATH.mkdir()
 
 
 @cli.command()
-@pass_context
-def entries(ctx):
+def entries():
   """
   List all journal entries
   """
-  entries_path = os.path.join(ctx.obj["DATA_PATH"], ENTRIES_PATH)
-  list_entries(entries_path, False)
+  list_entries(ENTRIES_PATH, False)
 
 
 @cli.command()
 @require_password
-@pass_context
-def create(ctx, pwd):
+def create(pwd):
   """
   Create a new encrypted journal entry
   """
-  entries_path = os.path.join(ctx.obj["DATA_PATH"], ENTRIES_PATH)
-
   # Create entries directory if it doesn't exist
-  if (not os.path.exists(entries_path)):
-    os.mkdir(entries_path)
+  if not ENTRIES_PATH.exists():
+    ENTRIES_PATH.mkdir()
 
-  entry_number = get_num_entries(entries_path) + 1
+  # Open text editor for user to enter entry contents
+  # Enabling require_save option will cause edit to return None if the user
+  # quits without saving
+  entry = click.edit(require_save=True)
+  if entry is None:
+    click.echo("Aborted entry creation")
+    return
+
+  entry = entry.encode("utf-8")
+
+  entry_number = get_num_entries(ENTRIES_PATH) + 1
   now = datetime.datetime.utcnow()
   entry_name = str(entry_number) + '_' + str(now.date()) + '_' + \
       str(now.time()).replace(':', '-').replace('.', '-') + '.entry'
+  new_entry_path = ENTRIES_PATH.joinpath(entry_name)
 
-  # Open text editor for user to enter entry contents
-  new_entry_path = os.path.join(entries_path, entry_name)
-  entry_bytes = editor.edit(filename=new_entry_path,
-                            contents="New journal entry")
-
-  click.echo(f"New encrypted entry successfully created at: {new_entry_path}")
+  click.echo(
+      f"New encrypted entry successfully created at:\n{new_entry_path}")
 
   # Encrypt text and save to file
-  encrypted = encryption.encrypt_from_password(entry_bytes, pwd)
-  open(new_entry_path, 'wb').write(encrypted)
+  encrypted = encryption.encrypt_from_password(entry, pwd)
+  new_entry_path.write_bytes(encrypted)
 
   return True
 
 
 @cli.command()
 @require_password
-@pass_context
-def read(ctx, pwd):
+def read(pwd):
   """
   Decrypt and read a journal entry
   """
+  entries = list_entries(ENTRIES_PATH, True)
 
-  entries_path = os.path.join(ctx.obj["DATA_PATH"], ENTRIES_PATH)
-  entries = list_entries(entries_path, True)
-
-  i = int(input("Input the entry ID: "))
+  i = int(input("Input the entry ID: ")) - 1
   try:
-    entry_bytes = open(os.path.join(entries_path, entries[i]), "rb").read()
+    entry_bytes = entries[i].read_bytes()
   except:
     click.echo(
         "ERROR Unable to open entry. Something might be wrong with the file")
@@ -178,12 +156,4 @@ def read(ctx, pwd):
         "ERROR Failed to decrypt entry file. Make sure you entered the correct password")
     return
 
-  ms = str(datetime.datetime.now().microsecond)
-  temp_name = entries[i] + ms + '.tmp'
-  read_only_msg = "NOTE: Modifying this file will NOT affect the actual entry. This file will be deleted once you exit the editor.\n---------------------------------------\n\n"
-  editor.edit(filename=temp_name, contents=read_only_msg + msg)
-
-  if os.path.exists(temp_name):
-    os.remove(temp_name)
-  else:
-    click.echo(f"ERROR Unable to find and delete {temp_name}")
+  click.edit(text="NOTE: Modifying this file will NOT affect the actual entry. This file will be deleted once you exit the editor.\n---------------------------------------\n\n" + msg)
