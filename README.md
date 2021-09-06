@@ -1,6 +1,6 @@
 # encrypted-journal
 
-A simple journal CLI that encrypts/decrypts entries using a password.
+CLI journal that encrypts/decrypts entries using a password
 
 ## Install Instructions
 1. Clone repository
