@@ -2,6 +2,8 @@
 
 CLI journal that encrypts/decrypts entries using a password
 
+Created to learn more about cryptography
+
 ## Install Instructions
 1. Clone repository
 2. Run `pip install --user .` from the repository root
