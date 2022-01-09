@@ -121,7 +121,7 @@ def create(pwd):
   # Entry file will be of format YYYY-MM-DD_HH-MM-SS.entry
   now = datetime.datetime.utcnow().isoformat(sep="_", timespec="seconds")
   entry_name = str(now).replace(':', '-')
-  new_entry_path = ENTRIES_PATH.joinpath(entry_name)
+  new_entry_path = ENTRIES_PATH.joinpath(entry_name + '.entry')
 
   if new_entry_path.is_file():
     click.echo(
