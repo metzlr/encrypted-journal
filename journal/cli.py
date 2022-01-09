@@ -5,6 +5,8 @@ from journal import encryption
 from journal.global_config import PWD_ITERATIONS, VERIFY_PASSWORD_MESSAGE, DATA_PATH, PWD_ITERATIONS, PWD_MIN_LENGTH, ENTRIES_PATH, PASSWORD_KEY_PATH
 from pathlib import Path
 
+EXIT_COMMANDS = ['quit', 'exit', 'q']
+
 
 def require_password(f):
   @click.pass_context
@@ -142,21 +144,32 @@ def read(pwd):
   """
   Decrypt and read a journal entry
   """
-  entries = list_entries(ENTRIES_PATH, True)
+  while True:
+    entries = list_entries(ENTRIES_PATH, True)
+    user_input = input(
+        "Input the ID number of the entry you want to read or enter 'q' to exit: ").lower()
+    if user_input in EXIT_COMMANDS:
+      break
 
-  i = int(input("Input the entry ID: ")) - 1
-  try:
-    entry_bytes = entries[i].read_bytes()
-  except:
-    click.echo(
-        "ERROR Unable to open entry. Something might be wrong with the file")
-    return
+    entry_id = None
+    try:
+      entry_id = int(user_input) - 1
+    except:
+      click.echo("Invalid ID!\n")
+      continue
 
-  try:
-    msg = encryption.decrypt_from_password(entry_bytes, pwd)
-  except:
-    click.echo(
-        "ERROR Failed to decrypt entry file. Make sure you entered the correct password")
-    return
+    try:
+      entry_bytes = entries[entry_id].read_bytes()
+    except:
+      click.echo(
+          "ERROR Unable to open entry. Something might be wrong with the file\n")
+      continue
 
-  click.edit(text="NOTE: Modifying this file will NOT affect the actual entry. This file will be deleted once you exit the editor.\n---------------------------------------\n\n" + msg)
+    try:
+      msg = encryption.decrypt_from_password(entry_bytes, pwd)
+    except:
+      click.echo(
+          "ERROR Failed to decrypt entry file. Make sure you entered the correct password\n")
+      continue
+
+    click.edit(text="NOTE: Modifying this file will NOT affect the actual entry. This file will be deleted once you exit the editor.\n---------------------------------------\n\n" + msg)
