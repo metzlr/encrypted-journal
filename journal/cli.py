@@ -3,6 +3,7 @@ import datetime
 from functools import update_wrapper
 from journal import encryption
 from journal.global_config import PWD_ITERATIONS, VERIFY_PASSWORD_MESSAGE, DATA_PATH, PWD_ITERATIONS, PWD_MIN_LENGTH, ENTRIES_PATH, PASSWORD_KEY_PATH
+from pathlib import Path
 
 
 def require_password(f):
@@ -117,20 +118,22 @@ def create(pwd):
 
   entry = entry.encode("utf-8")
 
-  entry_number = get_num_entries(ENTRIES_PATH) + 1
-  now = datetime.datetime.utcnow()
-  entry_name = str(entry_number) + '_' + str(now.date()) + '_' + \
-      str(now.time()).replace(':', '-').replace('.', '-') + '.entry'
+  # Entry file will be of format YYYY-MM-DD_HH-MM-SS.entry
+  now = datetime.datetime.utcnow().isoformat(sep="_", timespec="seconds")
+  entry_name = str(now).replace(':', '-')
   new_entry_path = ENTRIES_PATH.joinpath(entry_name)
 
-  click.echo(
-      f"New encrypted entry successfully created at:\n{new_entry_path}")
+  if new_entry_path.is_file():
+    click.echo(
+        f"Unable to save entry. There's already an entry with the name '{entry_name}' in {ENTRIES_PATH}")
+    return
 
   # Encrypt text and save to file
   encrypted = encryption.encrypt_from_password(entry, pwd)
   new_entry_path.write_bytes(encrypted)
 
-  return True
+  click.echo(
+      f"New encrypted entry successfully created at:\n{new_entry_path}")
 
 
 @cli.command()
