@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'click >= 8.0.1',
-        'cryptography >= 3.2',
+        'cryptography >= 3.3.2',
         'python-dotenv >= 0.18, <=0.19'
     ],
     include_package_data=True,
