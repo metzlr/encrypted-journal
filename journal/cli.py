@@ -227,6 +227,6 @@ def read(pwd):
           "ERROR Failed to decrypt entry file. Make sure you entered the correct password\n")
       continue
 
-    click.edit(text="NOTE: Modifying this file will NOT affect the actual entry. This file will be deleted once you exit the editor."
-               + "\n---------------------------------------------------------------------------------------------------------------------\n\n"
-               + contents)
+    click.edit(
+        text="NOTE: Modifying this file will NOT affect the actual entry. This file will be deleted once you exit the editor."
+        + "\n------------------------------------\n\n" + contents)
