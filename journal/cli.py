@@ -1,3 +1,4 @@
+from select import select
 import click
 import datetime
 from functools import update_wrapper
@@ -82,6 +83,30 @@ def list_entries(path, numbered=False):
   return entries
 
 
+def select_entry():
+  """
+  Displays a list of all entries and prompts user to select one. If the user inputs an exit command, None is returned.
+  """
+  while True:
+    entries = list_entries(ENTRIES_PATH, True)
+    user_input = input(
+        "Input the ID number of an entry or enter 'q' to exit: ").lower()
+    if user_input in EXIT_COMMANDS:
+      break
+
+    entry_id = None
+    try:
+      entry_id = int(user_input) - 1
+    except:
+      click.echo("Invalid ID!\n")
+      continue
+    if entry_id < 0 or entry_id >= len(entries):
+      click.echo("Invalid ID!\n")
+      continue
+
+    return entries[entry_id]
+
+
 @click.group()
 def cli():
   """
@@ -140,36 +165,68 @@ def create(pwd):
 
 @cli.command()
 @require_password
+def edit(pwd):
+  """
+  Edit an existing journal entry. Overwrites data in original entry.
+  """
+  while True:
+    click.echo("Pick an entry to edit:\n")
+    entry_path = select_entry()
+    if entry_path is None:
+      break
+
+    try:
+      entry_bytes = entry_path.read_bytes()
+    except:
+      click.echo(
+          "ERROR Unable to open entry. Something might be wrong with the file\n")
+      continue
+    try:
+      orig_contents = encryption.decrypt_from_password(entry_bytes, pwd)
+    except:
+      click.echo(
+          "ERROR Failed to decrypt entry file. Make sure you entered the correct password\n")
+      continue
+
+    updated_contents = click.edit(text=orig_contents, require_save=True)
+    if updated_contents is None:
+      # File was not edited
+      click.echo(f"No changes were made to entry '{entry_path.name}'\n")
+      continue
+
+    # Encrypt new text and overwrite original
+    encrypted = encryption.encrypt_from_password(updated_contents, pwd)
+    entry_path.write_bytes(encrypted)
+
+    click.echo(f"Changes to entry '{entry_path.name} saved successfully!\n")
+
+
+@cli.command()
+@require_password
 def read(pwd):
   """
   Decrypt and read a journal entry
   """
   while True:
-    entries = list_entries(ENTRIES_PATH, True)
-    user_input = input(
-        "Input the ID number of the entry you want to read or enter 'q' to exit: ").lower()
-    if user_input in EXIT_COMMANDS:
+    click.echo("Pick an entry to read:\n")
+    entry_path = select_entry()
+    if entry_path is None:
       break
 
-    entry_id = None
     try:
-      entry_id = int(user_input) - 1
-    except:
-      click.echo("Invalid ID!\n")
-      continue
-
-    try:
-      entry_bytes = entries[entry_id].read_bytes()
+      entry_bytes = entry_path.read_bytes()
     except:
       click.echo(
           "ERROR Unable to open entry. Something might be wrong with the file\n")
       continue
 
     try:
-      msg = encryption.decrypt_from_password(entry_bytes, pwd)
+      contents = encryption.decrypt_from_password(entry_bytes, pwd)
     except:
       click.echo(
           "ERROR Failed to decrypt entry file. Make sure you entered the correct password\n")
       continue
 
-    click.edit(text="NOTE: Modifying this file will NOT affect the actual entry. This file will be deleted once you exit the editor.\n---------------------------------------\n\n" + msg)
+    click.edit(text="NOTE: Modifying this file will NOT affect the actual entry. This file will be deleted once you exit the editor."
+               + "\n---------------------------------------------------------------------------------------------------------------------\n\n"
+               + contents)
