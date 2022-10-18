@@ -1,8 +1,6 @@
 # encrypted-journal
 
-CLI journal that encrypts/decrypts entries using a password
-
-Created to learn more about cryptography
+A CLI tool I made to learn more about cryptography. Allows you to create/read entries that are encrypted using a password.
 
 ## Install Instructions
 1. Clone repository
