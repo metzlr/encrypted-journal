@@ -190,14 +190,14 @@ def edit(pwd):
   updated_contents = click.edit(text=orig_contents, require_save=True)
   if updated_contents is None:
     # File was not edited
-    click.echo(f"\nNo changes were made to entry '{entry_path.name}'\n")
+    click.echo(f"\nNo changes were made to entry '{entry_path.name}'")
     return
 
   # Encrypt new text and overwrite original
   encrypted = encryption.encrypt_from_password(updated_contents, pwd)
   entry_path.write_bytes(encrypted)
 
-  click.echo(f"\nChanges to entry '{entry_path.name} saved successfully!\n")
+  click.echo(f"\nChanges to entry '{entry_path.name} saved successfully!")
 
 
 @cli.command()
