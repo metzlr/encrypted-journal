@@ -169,36 +169,35 @@ def edit(pwd):
   """
   Edit an existing journal entry. Overwrites data in original entry.
   """
-  while True:
-    click.echo("Pick an entry to edit:\n")
-    entry_path = select_entry()
-    if entry_path is None:
-      break
+  click.echo("Pick an entry to edit:\n")
+  entry_path = select_entry()
+  if entry_path is None:
+    return
 
-    try:
-      entry_bytes = entry_path.read_bytes()
-    except:
-      click.echo(
-          "ERROR Unable to open entry. Something might be wrong with the file\n")
-      continue
-    try:
-      orig_contents = encryption.decrypt_from_password(entry_bytes, pwd)
-    except:
-      click.echo(
-          "ERROR Failed to decrypt entry file. Make sure you entered the correct password\n")
-      continue
+  try:
+    entry_bytes = entry_path.read_bytes()
+  except:
+    click.echo(
+        "ERROR Unable to open entry. Something might be wrong with the file\n")
+    return
+  try:
+    orig_contents = encryption.decrypt_from_password(entry_bytes, pwd)
+  except:
+    click.echo(
+        "ERROR Failed to decrypt entry file. Make sure you entered the correct password\n")
+    return
 
-    updated_contents = click.edit(text=orig_contents, require_save=True)
-    if updated_contents is None:
-      # File was not edited
-      click.echo(f"No changes were made to entry '{entry_path.name}'\n")
-      continue
+  updated_contents = click.edit(text=orig_contents, require_save=True)
+  if updated_contents is None:
+    # File was not edited
+    click.echo(f"\nNo changes were made to entry '{entry_path.name}'\n")
+    return
 
-    # Encrypt new text and overwrite original
-    encrypted = encryption.encrypt_from_password(updated_contents, pwd)
-    entry_path.write_bytes(encrypted)
+  # Encrypt new text and overwrite original
+  encrypted = encryption.encrypt_from_password(updated_contents, pwd)
+  entry_path.write_bytes(encrypted)
 
-    click.echo(f"Changes to entry '{entry_path.name} saved successfully!\n")
+  click.echo(f"\nChanges to entry '{entry_path.name} saved successfully!\n")
 
 
 @cli.command()
