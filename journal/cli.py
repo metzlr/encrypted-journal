@@ -110,11 +110,21 @@ def select_entry():
 @click.group()
 def cli():
   """
-  Encrypted Journal CLI
+  Encrypted Journal
   """
   # Create data directory if it doesn't already exist
   if not DATA_PATH.exists():
     DATA_PATH.mkdir()
+
+
+@cli.command()
+def info():
+  """
+  Print info about the current ejournal
+  """
+  click.echo(f"Password set: {PASSWORD_KEY_PATH.exists()}")
+  click.echo(f"Entries path: {ENTRIES_PATH.resolve()}")
+  click.echo(f"Number of entries: {get_num_entries(ENTRIES_PATH)}")
 
 
 @cli.command()
