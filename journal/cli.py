@@ -134,11 +134,8 @@ def info_cmd():
   for i in range(len(entries)-1):
     e0 = entries[i]
     e1 = entries[i+1]
-    print(e0, e1)
     d = datetime.datetime.strptime(e1.stem, ENTRY_NAME_FORMAT) - \
         datetime.datetime.strptime(e0.stem, ENTRY_NAME_FORMAT)
-
-    print(d)
     deltas.append(d.total_seconds())
   d_avg = datetime.timedelta(seconds=sum(deltas) / len(deltas))
 
@@ -146,6 +143,7 @@ def info_cmd():
   click.echo(f"Entries path: {ENTRIES_PATH.resolve()}")
   click.echo(f"Number of entries: {len(entries)}")
   click.echo(f"Avg time between entries: {format_timedelta(d_avg)}")
+  # TODO: Show avg time for last week, month, year as well
 
 
 @cli.command(name="list")
