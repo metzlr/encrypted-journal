@@ -7,6 +7,13 @@ from journal.global_config import PWD_ITERATIONS, VERIFY_PASSWORD_MESSAGE, DATA_
 from pathlib import Path
 
 EXIT_COMMANDS = ['quit', 'exit', 'q']
+ENTRY_NAME_FORMAT = "%Y-%m-%d_%H-%M-%S"
+
+
+def format_timedelta(td):
+  minutes, _ = divmod(td.seconds, 60)
+  hours, minutes = divmod(minutes, 60)
+  return f"{td.days}d {hours:02d}h {minutes:02d}m"
 
 
 def require_password(f):
@@ -54,8 +61,8 @@ def validate_password(test_pwd, pwd_path):
   return verify_msg == VERIFY_PASSWORD_MESSAGE
 
 
-def get_num_entries(path):
-  return len(list(path.glob("*.entry")))
+def get_entries_at(path):
+  return sorted(path.glob("*.entry"))
 
 
 def list_entries(path, numbered=False):
@@ -117,27 +124,41 @@ def cli():
     DATA_PATH.mkdir()
 
 
-@cli.command()
-def info():
+@cli.command(name="info")
+def info_cmd():
   """
   Print info about the current ejournal
   """
+  entries = get_entries_at(ENTRIES_PATH)
+  deltas = []
+  for i in range(len(entries)-1):
+    e0 = entries[i]
+    e1 = entries[i+1]
+    print(e0, e1)
+    d = datetime.datetime.strptime(e1.stem, ENTRY_NAME_FORMAT) - \
+        datetime.datetime.strptime(e0.stem, ENTRY_NAME_FORMAT)
+
+    print(d)
+    deltas.append(d.total_seconds())
+  d_avg = datetime.timedelta(seconds=sum(deltas) / len(deltas))
+
   click.echo(f"Password set: {PASSWORD_KEY_PATH.exists()}")
   click.echo(f"Entries path: {ENTRIES_PATH.resolve()}")
-  click.echo(f"Number of entries: {get_num_entries(ENTRIES_PATH)}")
+  click.echo(f"Number of entries: {len(entries)}")
+  click.echo(f"Avg time between entries: {format_timedelta(d_avg)}")
 
 
-@cli.command()
-def entries():
+@cli.command(name="list")
+def list_cmd():
   """
   List all journal entries
   """
   list_entries(ENTRIES_PATH, False)
 
 
-@cli.command()
+@cli.command(name="create")
 @require_password
-def create(pwd):
+def create_cmd(pwd):
   """
   Create a new encrypted journal entry
   """
@@ -156,7 +177,7 @@ def create(pwd):
   entry = entry.encode("utf-8")
 
   # Entry file will be of format YYYY-MM-DD_HH-MM-SS.entry
-  now = datetime.datetime.utcnow().isoformat(sep="_", timespec="seconds")
+  now = datetime.datetime.utcnow().strftime(ENTRY_NAME_FORMAT)
   entry_name = str(now).replace(':', '-')
   new_entry_path = ENTRIES_PATH.joinpath(entry_name + '.entry')
 
@@ -173,9 +194,9 @@ def create(pwd):
       f"New encrypted entry successfully created at:\n{new_entry_path}")
 
 
-@cli.command()
+@cli.command(name="edit")
 @require_password
-def edit(pwd):
+def edit_cmd(pwd):
   """
   Edit an existing journal entry. Overwrites data in original entry.
   """
@@ -210,9 +231,9 @@ def edit(pwd):
   click.echo(f"\nChanges to entry '{entry_path.name} saved successfully!")
 
 
-@cli.command()
+@cli.command(name="read")
 @require_password
-def read(pwd):
+def read_cmd(pwd):
   """
   Decrypt and read a journal entry
   """
