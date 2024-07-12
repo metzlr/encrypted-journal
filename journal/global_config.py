@@ -15,6 +15,8 @@ if os.getenv("DEV", "False").lower() == "true":
 else:
   DATA_PATH = PROD_DATA_PATH
 
+DATA_PATH.mkdir(parents=True, exist_ok=True)
+
 CONFIG_PATH = DATA_PATH.joinpath("config.ini")
 config = ConfigParser()
 # Create config file and populate it with default values if it doesn't exist
@@ -23,7 +25,7 @@ if not CONFIG_PATH.exists():
       "entries_path": DATA_PATH.joinpath("entries")
   }
   config["custom"] = {}
-  config.write(CONFIG_PATH.open("w"))
+  config.write(CONFIG_PATH.open("w+"))
 else:
   config.read(CONFIG_PATH)
 

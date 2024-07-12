@@ -137,12 +137,12 @@ def info_cmd():
     d = datetime.datetime.strptime(e1.stem, ENTRY_NAME_FORMAT) - \
         datetime.datetime.strptime(e0.stem, ENTRY_NAME_FORMAT)
     deltas.append(d.total_seconds())
-  d_avg = datetime.timedelta(seconds=sum(deltas) / len(deltas))
+  d_avg = None if len(deltas) == 0 else datetime.timedelta(seconds=sum(deltas) / len(deltas))
 
   click.echo(f"Password set: {PASSWORD_KEY_PATH.exists()}")
   click.echo(f"Entries path: {ENTRIES_PATH.resolve()}")
   click.echo(f"Number of entries: {len(entries)}")
-  click.echo(f"Avg time between entries: {format_timedelta(d_avg)}")
+  click.echo(f"Avg time between entries: {'NA' if d_avg is None else format_timedelta(d_avg)}")
   # TODO: Show avg time for last week, month, year as well
 
 
